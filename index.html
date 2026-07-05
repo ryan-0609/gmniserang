@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMNI Serang - Gerakan Mahasiswa Nasional Indonesia</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Merriweather for Premium Editorial Style -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&display=swap" rel="stylesheet">
+    
+    <!-- GLOBAL FALLBACK HANDLER UNTUK LOGO INSTAGRAM YANG KADALUWARSA / BLOCKED -->
+    <script>
+        window.handleLogoFallback = function(imgElement) {
+            console.warn("Logo link blocked or expired. Utilizing local premium fallback.");
+            const parent = imgElement.parentElement;
+            if (parent) {
+                parent.innerHTML = `
+                    <div class="h-10 w-10 rounded-full bg-red-800 border-2 border-yellow-500 shadow-md flex items-center justify-center text-white text-xs font-black tracking-tighter select-none animate-pulse">
+                        GMNI
+                    </div>
+                `;
+            }
+        };
+
+        window.handleMemberFallback = function(imgElement) {
+            const parent = imgElement.parentElement;
+            if (parent) {
+                parent.innerHTML = `
+                    <div class="w-full h-full bg-gray-950 flex items-center justify-center">
+                        <i class="fa-solid fa-user-tie text-red-500 text-3xl"></i>
+                    </div>
+                `;
+            }
+        };
+    </script>
+
+    <!-- CORE LOCAL-FIRST RENDERING ENGINE & STATE SYSTEM (FAIL-SAFE FOR CANVAS PREVIEW) -->
+    <script>
+        // Setup App IDs & Global Hooks Dynamically to comply with Sandbox Security Rules
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'gmni-serang-default-id';
+        window.isUsingFirebase = false;
+        window.db = null;
+        window.auth = null;
+        window.user = null;
+
+        const LOCAL_STORAGE_PREFIX = `gmni_local_${window.appId}_`;
+        
+        const getLocalItem = (key, defaultVal) => {
+            try {
+                const data = localStorage.getItem(LOCAL_STORAGE_PREFIX + key);
+                return data ? JSON.parse(data) : defaultVal;
+            } catch (e) {
+                console.warn(`Storage access denied in sandbox for key: ${key}. Using memory state.`);
+                return defaultVal;
+            }
+        };
+
+        const setLocalItem = (key, val) => {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_PREFIX + key, JSON.stringify(val));
+            } catch (e) {
+                console.warn(`Could not save key: ${key} to storage.`);
+            }
+        };
+
+        // Default Rich Content
+        const defaultProfile = {
+            history: "Gerakan Mahasiswa Nasional Indonesia (GMNI) Cabang Serang merupakan episentrum perjuangan mahasiswa nasionalis marhaenis di wilayah Serang. Berdiri sebagai garda terdepan mengawal Tri Dharma Perguruan Tinggi, GMNI Serang terus berkomitmen melahirkan intelektual-organis, mencetak kader bangsa yang bervisi kebangsaan kokoh, progresif revolusioner, serta bersandar teguh pada ajaran Bung Karno: Marhaenisme.",
+            vision: "Menjadikan GMNI Serang sebagai wadah organisasi progresif-revolusioner yang unggul secara intelektual, kokoh secara ideologis, serta berakar kuat di tengah-tengah massa rakyat Marhaen guna menegakkan kedaulatan NKRI.",
+            mission: [
+                "Melakukan kaderisasi terencana, adaptif, dan berkelanjutan di wilayah Serang.",
+                "Menanamkan pemahaman ideologi Pancasila 1 Juni 1945 dan asas Marhaenisme di kancah kemahasiswaan.",
+                "Aktif mengadvokasi isu keadilan sosial, perburuhan, pertanian, dan kesetaraan hak masyarakat Serang.",
+                "Mendorong kader untuk aktif berkarya secara akademis maupun pergerakan sosial langsung."
+            ]
+        };
+
+        const defaultArticles = [
+            {
+                id: "art-1",
+                title: "Marhaenisme Sebagai Pisau Analisis Zaman Kontemporer",
+                author: "Bung Arya",
+                category: "Ideologi Marhaenisme",
+                imageUrl: "",
+                articleUrl: "",
+                content: "Memasuki era disrupsi digital, tantangan kaum proletar dan kaum marhaen kian bertransformasi. Eksploitasi tidak lagi sekedar berbasis fisik pabrik, melainkan bergeser ke ranah algoritmik. Marhaenisme mengajari kita bahwa setiap kader wajib menjadi pembela kaum kecil yang ditindas oleh sistem akumulasi kapital global. GMNI Serang harus mampu mentranslasasikan gagasan perjuangan ini secara dinamis dan konkret.",
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: "art-2",
+                title: "Refleksi Demokrasi Kampus: Menghidupkan Kembali Mimbar Kritis",
+                author: "Sarinah Lestari",
+                category: "Opini Perjuangan",
+                imageUrl: "",
+                articleUrl: "",
+                content: "Otonomi kampus tidak seyogyanya menumpulkan nalar kritis mahasiswa. Kita menyaksikan kemunduran gairah dialektika di ruang-ruang akademik. Mahasiswa cenderung dikonstruksikan sebagai buruh industri masa depan berkat sistem kurikulum pragmatis. Melalui tulisan ini, saya mengajak segenap kader GMNI untuk merebut kembali mimbar-mimbar perdebatan.",
+                createdAt: new Date(Date.now() - 86400000).toISOString()
+            }
+        ];
+
+        const defaultStructure = [
+            { id: "str-1", name: "Bung Dedi Setiawan", role: "Ketua DPC GMNI Serang", order: 1, contact: "@dedisetya", imageUrl: "" },
+            { id: "str-2", name: "Sarinah Windy Rahma", role: "Sekretaris Cabang", order: 2, contact: "@windyrm", imageUrl: "" },
+            { id: "str-3", name: "Bung Teguh Permana", role: "Bendahara Umum", order: 3, contact: "@teguh_p", imageUrl: "" }
+        ];
+
+        // Store active data state in global space with fallback validation
+        try {
+            window.currentProfile = getLocalItem('profile', defaultProfile);
+            if (!window.currentProfile || !window.currentProfile.history || !window.currentProfile.mission) {
+                window.currentProfile = defaultProfile;
+            }
+        } catch(e) {
+            window.currentProfile = defaultProfile;
+        }
+
+        try {
+            window.currentArticles = getLocalItem('articles', defaultArticles);
+            if (!Array.isArray(window.currentArticles)) {
+                window.currentArticles = defaultArticles;
+            }
+        } catch(e) {
+            window.currentArticles = defaultArticles;
+        }
+
+        try {
+            window.currentStructure = getLocalItem('structure', defaultStructure);
+            if (!Array.isArray(window.currentStructure)) {
+                window.currentStructure = defaultStructure;
+            }
+        } catch(e) {
+            window.currentStructure = defaultStructure;
+        }
+
+        window.renderProfile = function() {
+            const histContainer = document.getElementById('display-history');
+            const visContainer = document.getElementById('display-vision');
+            const misContainer = document.getElementById('display-mission');
+            
+            const profile = window.currentProfile || defaultProfile;
+            const history = profile.history || defaultProfile.history;
+            const vision = profile.vision || defaultProfile.vision;
+            const mission = Array.isArray(profile.mission) ? profile.mission : defaultProfile.mission;
+
+            if (histContainer && history) {
+                histContainer.innerHTML = history.split('\n').map(p => `<p class="mb-4 leading-relaxed">${p}</p>`).join('');
+            }
+            if (visContainer && vision) {
+                visContainer.textContent = vision;
+            }
+            if (misContainer && mission) {
+                misContainer.innerHTML = mission.map(m => `
+                    <li class="flex items-start gap-3 bg-gray-900/40 p-3 rounded-xl border border-gray-800">
+                        <span class="text-yellow-500 font-bold shrink-0 mt-0.5">✓</span> 
+                        <span class="text-gray-300 text-sm leading-relaxed">${m}</span>
+                    </li>
+                `).join('');
+            }
+        };
+
+        window.renderArticles = function() {
+            const feed = document.getElementById('articles-feed');
+            if (!feed) return;
+            
+            const searchInput = document.getElementById('article-search');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            
+            const articles = Array.isArray(window.currentArticles) ? window.currentArticles : defaultArticles;
+            
+            const filtered = articles.filter(art => {
+                if (!art) return false;
+                const title = art.title || '';
+                const content = art.content || '';
+                const author = art.author || '';
+                return title.toLowerCase().includes(searchTerm) || 
+                       content.toLowerCase().includes(searchTerm) ||
+                       author.toLowerCase().includes(searchTerm);
+            });
+
+            if (filtered.length === 0) {
+                feed.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-gray-500 border border-dashed border-gray-800 rounded-2xl">
+                        <i class="fa-solid fa-magnifying-glass text-3xl mb-3 text-red-700"></i>
+                        <p class="text-sm">Tidak ditemukan artikel perjuangan dengan pangkat pencarian ini.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(art => {
+                if (!art) return '';
+                const title = art.title || 'Tanpa Judul';
+                const content = art.content || '';
+                const author = art.author || 'Anonim';
+                const category = art.category || 'Opini';
+                const dateText = new Date(art.createdAt || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                const hasImage = art.imageUrl && art.imageUrl.trim() !== '';
+                return `
+                    <article class="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden hover:border-red-900 transition-all flex flex-col justify-between hover:shadow-2xl">
+                        <div>
+                            ${hasImage ? `
+                                <div class="h-52 w-full overflow-hidden relative cursor-pointer" onclick="viewArticleDetails('${art.id}')">
+                                    <img src="${art.imageUrl}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" alt="${title}" onerror="this.src='https://placehold.co/800x400/991b1b/ffffff?text=GMNI+Serang'">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent opacity-80"></div>
+                                </div>
+                            ` : ''}
+                            <div class="p-6 sm:p-8">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="bg-red-950/85 text-red-400 border border-red-900/40 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-md">
+                                        ${category}
+                                    </span>
+                                    <span class="text-xs text-gray-500 flex items-center gap-1"><i class="fa-regular fa-clock"></i> ${dateText}</span>
+                                </div>
+                                <h3 class="editorial-font text-2xl font-bold text-white mb-3 hover:text-red-400 transition-colors cursor-pointer leading-snug" onclick="viewArticleDetails('${art.id}')">
+                                    ${title}
+                                </h3>
+                                <p class="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-4 editorial-font">
+                                    ${content}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between px-6 pb-6 sm:px-8 sm:pb-8 pt-5 border-t border-gray-800">
+                            <span class="text-xs text-gray-400 font-medium">Oleh: <strong class="text-white">${author}</strong></span>
+                            <button onclick="viewArticleDetails('${art.id}')" class="text-red-500 hover:text-red-400 text-xs font-bold flex items-center gap-1 group">
+                                Baca Selengkapnya <i class="fa-solid fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
+                            </button>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+        };
+
+        window.renderStructure = function() {
+            const grid = document.getElementById('structure-grid');
+            if (!grid) return;
+            
+            const structure = Array.isArray(window.currentStructure) ? window.currentStructure : defaultStructure;
+            
+            if (structure.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-gray-500">
+                        <p>Belum ada daftar pengurus DPC.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = structure.map(member => {
+                if (!member) return '';
+                const name = member.name || 'Nama Pengurus';
+                const role = member.role || 'Jabatan';
+                const contact = member.contact || '';
+                const hasImage = member.imageUrl && member.imageUrl.trim() !== '';
+                return `
+                    <div class="bg-gray-900/60 border border-gray-800 p-6 rounded-2xl text-center relative overflow-hidden group hover:border-yellow-500/50 hover:bg-gray-900 transition-all">
+                        <!-- Top Ribbon Background -->
+                        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-red-750 to-yellow-500 opacity-80"></div>
+                        
+                        <div class="w-24 h-24 bg-gray-950 border-2 border-red-800 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden group-hover:scale-105 transition-transform">
+                            ${hasImage ? `
+                                <img src="${member.imageUrl}" class="w-full h-full object-cover" alt="${name}" onerror="handleMemberFallback(this)">
+                            ` : `
+                                <i class="fa-solid fa-user-tie text-red-500 text-3xl"></i>
+                            `}
+                        </div>
+                        
+                        <h3 class="text-lg font-bold text-white tracking-wide">${name}</h3>
+                        <p class="text-yellow-500 text-xs font-bold uppercase tracking-widest mt-1">${role}</p>
+                        
+                        ${contact ? `
+                            <div class="mt-4 pt-4 border-t border-gray-800 flex items-center justify-center gap-2 text-xs text-gray-400">
+                                <i class="fa-brands fa-instagram text-yellow-600"></i>
+                                <span>${contact}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.renderAdminProfileForm = function() {
+            const h = document.getElementById('edit-history');
+            const v = document.getElementById('edit-vision');
+            const m = document.getElementById('edit-mission');
+            const profile = window.currentProfile || defaultProfile;
+            const history = profile.history || defaultProfile.history;
+            const vision = profile.vision || defaultProfile.vision;
+            const mission = Array.isArray(profile.mission) ? profile.mission : defaultProfile.mission;
+
+            if (h) h.value = history;
+            if (v) v.value = vision;
+            if (m) m.value = mission.join('\n');
+        };
+
+        window.renderAdminArticles = function() {
+            const rows = document.getElementById('admin-articles-rows');
+            if (!rows) return;
+            
+            const articles = Array.isArray(window.currentArticles) ? window.currentArticles : defaultArticles;
+            if (articles.length === 0) {
+                rows.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-6 text-center text-gray-500">Belum ada artikel. Silakan tambah baru.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            rows.innerHTML = articles.map(art => {
+                if (!art) return '';
+                const title = art.title || 'Tanpa Judul';
+                const author = art.author || 'Anonim';
+                const category = art.category || 'Opini';
+                return `
+                    <tr class="hover:bg-gray-880/30 transition-colors border-b border-gray-800/40">
+                        <td class="py-4 px-4 font-bold text-white max-w-xs truncate">${title}</td>
+                        <td class="py-4 px-4 text-gray-300 text-xs">${author}</td>
+                        <td class="py-4 px-4 text-gray-400 text-xs">${category}</td>
+                        <td class="py-4 px-4 text-right space-x-3 whitespace-nowrap">
+                            <button onclick="editArticle('${art.id}')" class="text-yellow-500 hover:text-yellow-400 text-xs font-bold"><i class="fa-solid fa-pen-to-square"></i> Sunting</button>
+                            <button onclick="deleteArticle('${art.id}')" class="text-red-500 hover:text-red-400 text-xs font-bold"><i class="fa-solid fa-trash"></i> Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        window.renderAdminStructure = function() {
+            const rows = document.getElementById('admin-structure-rows');
+            if (!rows) return;
+            
+            const structure = Array.isArray(window.currentStructure) ? window.currentStructure : defaultStructure;
+            if (structure.length === 0) {
+                rows.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-6 text-center text-gray-500">Belum ada jajaran pengurus.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            rows.innerHTML = structure.map(member => {
+                if (!member) return '';
+                const name = member.name || 'Nama Pengurus';
+                const role = member.role || 'Jabatan';
+                const contact = member.contact || '-';
+                return `
+                    <tr class="hover:bg-gray-880/30 transition-colors border-b border-gray-800/40">
+                        <td class="py-4 px-4 font-bold text-white">${name}</td>
+                        <td class="py-4 px-4 text-yellow-500 font-bold text-xs uppercase">${role}</td>
+                        <td class="py-4 px-4 text-gray-400 text-xs">${contact}</td>
+                        <td class="py-4 px-4 text-right space-x-3 whitespace-nowrap">
+                            <button onclick="editStructure('${member.id}')" class="text-yellow-500 hover:text-yellow-400 text-xs font-bold"><i class="fa-solid fa-pen-to-square"></i> Sunting</button>
+                            <button onclick="deleteStructure('${member.id}')" class="text-red-500 hover:text-red-400 text-xs font-bold"><i class="fa-solid fa-trash"></i> Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        window.loadLocalUiData = function() {
+            window.renderProfile();
+            window.renderAdminProfileForm();
+            window.renderArticles();
+            window.renderAdminArticles();
+            window.renderStructure();
+            window.renderAdminStructure();
+        };
+
+        // Navigation Controllers
+        window.activeSection = 'home';
+        window.navigate = function(sectionId) {
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
+            const targetSec = document.getElementById(`view-${sectionId}`);
+            if (targetSec) targetSec.classList.remove('hidden');
+            window.activeSection = sectionId;
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-red-900', 'text-yellow-400');
+            });
+
+            const menu = document.getElementById('mobile-menu');
+            if (menu) menu.classList.add('hidden');
+            const menuIcon = document.getElementById('menu-icon');
+            if (menuIcon) menuIcon.className = "fa-solid fa-bars text-2xl";
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.toggleMobileMenu = function() {
+            const menu = document.getElementById('mobile-menu');
+            const icon = document.getElementById('menu-icon');
+            if (!menu || !icon) return;
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                icon.className = "fa-solid fa-xmark text-2xl";
+            } else {
+                menu.classList.add('hidden');
+                icon.className = "fa-solid fa-bars text-2xl";
+            }
+        };
+
+        window.scrollToProfile = function() {
+            const el = document.getElementById('profile-details');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+
+        window.renderSingleArticle = function(id) {
+            const art = window.currentArticles.find(a => a.id === id);
+            const container = document.getElementById('view-single-article');
+            if (!container) return;
+            if (!art) {
+                container.innerHTML = `
+                    <div class="text-center py-20">
+                        <h2 class="text-2xl font-bold text-red-500 mb-4">Artikel Tidak Ditemukan</h2>
+                        <p class="text-gray-400 mb-6">Artikel yang Anda cari tidak tersedia atau telah dihapus.</p>
+                        <a href="?" class="bg-red-700 text-white font-bold px-6 py-2.5 rounded-lg">Kembali ke Beranda</a>
+                    </div>
+                `;
+                return;
+            }
+            const dateText = new Date(art.createdAt || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const hasImage = art.imageUrl && art.imageUrl.trim() !== '';
+            const contentFormatted = (art.content || '').split('\n').map(p => `<p class="mb-5 leading-relaxed text-gray-300 editorial-font text-base sm:text-lg">${p}</p>`).join('');
+
+            container.innerHTML = `
+                <div class="py-6">
+                    <a href="?" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-red-500 transition-colors mb-8">
+                        <i class="fa-solid fa-arrow-left"></i> Kembali ke Beranda GMNI Serang
+                    </a>
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="bg-red-950 text-red-400 border border-red-900/30 text-xs font-bold uppercase px-3 py-1 rounded-md">${art.category || 'Opini'}</span>
+                        <span class="text-xs text-gray-500">${dateText}</span>
+                    </div>
+                    <h1 class="editorial-font text-3xl sm:text-5xl font-black text-white mb-6 tracking-tight leading-tight">${art.title}</h1>
+                    
+                    ${hasImage ? `
+                        <div class="w-full h-64 sm:h-96 rounded-2xl overflow-hidden mb-8 border border-gray-800">
+                            <img src="${art.imageUrl}" class="w-full h-full object-cover" alt="${art.title}" onerror="this.style.display='none'">
+                        </div>
+                    ` : ''}
+
+                    <div class="border-t border-b border-gray-800/60 py-4 mb-8 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-red-800 rounded-full flex items-center justify-center text-sm font-bold text-white uppercase">${art.author.charAt(0)}</div>
+                        <div>
+                            <span class="text-xs text-gray-500 block">Ditulis oleh</span>
+                            <span class="text-sm text-white font-bold">${art.author}</span>
+                        </div>
+                    </div>
+                    <div class="prose prose-invert max-w-none">
+                        ${contentFormatted}
+                    </div>
+                </div>
+            `;
+        };
+
+        // UI Event Hooking
+        window.onload = function() {
+            window.loadLocalUiData();
+            
+            // ROUTING CHECK FOR SINGLE ARTICLE DETAILED VIEW
+            const urlParams = new URLSearchParams(window.location.search);
+            const articleId = urlParams.get('article');
+            if (articleId) {
+                window.navigate('single-article');
+                window.renderSingleArticle(articleId);
+                
+                // Hide header nav & footer on standalone article tab for a clean distraction-free experience
+                const nav = document.querySelector('nav');
+                const footer = document.querySelector('footer');
+                if (nav) nav.classList.add('hidden');
+                if (footer) footer.classList.add('hidden');
+            }
+
+            const searchInput = document.getElementById('article-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', window.renderArticles);
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .editorial-font {
+            font-family: 'Merriweather', serif;
+        }
+        /* Custom scrollbar to match theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b91c1c;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 flex flex-col min-h-screen selection:bg-red-700 selection:text-white">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-red-950 border-b border-red-900 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3 cursor-pointer select-none group" onclick="navigate('home')">
+                    <div class="relative h-11 w-11 rounded-full p-0.5 bg-gradient-to-tr from-yellow-500 to-red-600 flex items-center justify-center shadow-md">
+                        <img id="gmni-logo" 
+                             src="https://thumbnail.imgbin.com/7/0/24/imgbin-kendari-organization-banten-gerakan-mahasiswa-di-indonesia-marhaenism-surabaya-4pKhb15jtw49whQJSrFq3H7Dk_t.jpg" 
+                             onerror="handleLogoFallback(this)"
+                             class="h-10 w-10 rounded-full object-cover bg-black" 
+                             alt="Logo GMNI Serang">
+                    </div>
+                    <div>
+                        <span class="text-white font-extrabold text-lg tracking-wider block leading-none">GMNI</span>
+                        <span class="text-yellow-400 font-bold text-xs tracking-widest uppercase block mt-1">DPC SERANG</span>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-1">
+                    <button onclick="navigate('home')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold text-white hover:bg-red-900/60 transition-all">Beranda</button>
+                    <button onclick="navigate('articles')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold text-white hover:bg-red-900/60 transition-all">Artikel & Opini</button>
+                    <button onclick="navigate('structure')" class="nav-btn px-4 py-2 rounded-lg text-sm font-semibold text-white hover:bg-red-900/60 transition-all">Struktur Kepengurusan</button>
+                    <button id="admin-nav-btn" onclick="navigate('admin-login')" class="bg-black hover:bg-yellow-500 hover:text-black border border-yellow-500 text-yellow-500 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-300 ml-4 flex items-center gap-2">
+                        <i class="fa-solid fa-lock-open"></i> Portal Admin
+                    </button>
+                </div>
+
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="text-white hover:text-yellow-400 focus:outline-none p-2 rounded-md hover:bg-red-900">
+                        <i id="menu-icon" class="fa-solid fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-red-950 border-t border-red-900/50 px-3 pt-2 pb-4 space-y-1 shadow-inner">
+            <button onclick="navigate('home')" class="w-full text-left px-3 py-2.5 rounded-md text-base font-medium text-white hover:bg-red-900/50">Beranda</button>
+            <button onclick="navigate('articles')" class="w-full text-left px-3 py-2.5 rounded-md text-base font-medium text-white hover:bg-red-900/50">Artikel & Opini</button>
+            <button onclick="navigate('structure')" class="w-full text-left px-3 py-2.5 rounded-md text-base font-medium text-white hover:bg-red-900/50">Struktur Kepengurusan</button>
+            <button onclick="navigate('admin-login')" class="w-full text-left px-3 py-2.5 rounded-md text-base font-medium text-yellow-400 hover:bg-red-900/50 font-bold flex items-center gap-2">
+                <i class="fa-solid fa-lock-open"></i> Portal Admin
+            </button>
+        </div>
+    </nav>
+
+    <!-- Notification Toast System -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
+
+    <main class="flex-grow">
+
+        <!-- VIEW: HOME / PROFILE -->
+        <section id="view-home" class="view-section">
+            <div class="relative bg-gradient-to-r from-red-950 via-red-900 to-black py-24 px-4 text-center overflow-hidden border-b border-red-900/50">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                <div class="relative max-w-4xl mx-auto z-10">
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-black/60 border border-yellow-500 rounded-full text-yellow-400 text-xs font-semibold uppercase tracking-widest mb-6 select-none animate-pulse">
+                        <i class="fa-solid fa-fire text-red-500 animate-bounce"></i> Pejuang Pemikir - Pemikir Pejuang
+                    </div>
+                    <h1 class="editorial-font text-5xl sm:text-7xl font-black text-white leading-none mb-6 tracking-tight">
+                        GMNI <span class="text-red-500">SERANG</span>
+                    </h1>
+                    <p class="text-gray-300 text-lg sm:text-xl font-light max-w-2xl mx-auto mb-10 leading-relaxed">
+                        Wadah perjuangan mahasiswa nasionalis progresif di Serang untuk mewujudkan kedaulatan, kemandirian, dan kepribadian bangsa berlandaskan Pancasila 1 Juni 1945 dan Marhaenisme.
+                    </p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <button onclick="navigate('articles')" class="bg-red-700 hover:bg-red-650 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg hover:shadow-red-900/50 transition-all transform hover:-translate-y-0.5">
+                            Baca Artikel Perjuangan
+                        </button>
+                        <button onclick="scrollToProfile()" class="bg-gray-900 hover:bg-gray-850 border border-gray-800 text-gray-200 font-bold px-8 py-3.5 rounded-xl transition-all">
+                            Kenali Lebih Dekat
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="profile-details" class="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="flex items-center gap-3 border-b border-red-900 pb-4">
+                            <div class="p-2 bg-red-950/40 rounded-lg border border-red-900/40 text-red-500">
+                                <i class="fa-solid fa-monument text-2xl"></i>
+                            </div>
+                            <h2 class="editorial-font text-3xl font-extrabold text-white">Sejarah & Perjuangan</h2>
+                        </div>
+                        <div id="display-history" class="text-gray-300 leading-relaxed space-y-4 editorial-font text-lg">
+                            <p>Loading sejarah organisasi...</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-8 bg-gray-900/30 border border-gray-800 p-8 rounded-2xl relative animate-pulse">
+                        <div class="absolute top-0 right-8 transform -translate-y-1/2 bg-yellow-500 text-black px-4 py-1 text-xs font-black uppercase tracking-widest rounded-full shadow-md">
+                            Trisakti
+                        </div>
+                        
+                        <div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <i class="fa-solid fa-eye text-yellow-500 text-xl"></i>
+                                <h3 class="text-xl font-bold text-white tracking-wide">Visi Kami</h3>
+                            </div>
+                            <div id="display-vision" class="text-gray-300 leading-relaxed border-l-4 border-yellow-500 pl-4 py-1 italic">
+                                Loading visi...
+                            </div>
+                        </div>
+
+                        <hr class="border-gray-800">
+
+                        <div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <i class="fa-solid fa-bullseye text-red-500 text-xl"></i>
+                                <h3 class="text-xl font-bold text-white tracking-wide">Misi Perjuangan</h3>
+                            </div>
+                            <ul id="display-mission" class="space-y-3.5 text-gray-300">
+                                <li>Loading misi...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: ARTICLES & OPINION -->
+        <section id="view-articles" class="view-section hidden max-w-6xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-red-955 pb-6 mb-10 gap-4">
+                <div>
+                    <span class="text-red-500 font-bold text-xs tracking-widest uppercase">Mimbar Bebas</span>
+                    <h1 class="editorial-font text-4xl font-black text-white mt-1">Artikel & Opini</h1>
+                    <p class="text-gray-400 text-sm mt-1">Buah pemikiran progresif dan catatan taktis kader GMNI Serang.</p>
+                </div>
+                <div class="relative w-full md:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                    <input type="text" id="article-search" placeholder="Cari judul, konten, penulis..." class="w-full bg-gray-900 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500 transition-colors">
+                </div>
+            </div>
+
+            <!-- Articles Feed -->
+            <div id="articles-feed" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="col-span-full py-12 text-center text-gray-500">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl mb-4 text-red-600"></i>
+                    <p>Memuat kabar perjuangan...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: STRUCTURE -->
+        <section id="view-structure" class="view-section hidden max-w-6xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <span class="text-yellow-500 font-bold text-xs tracking-widest uppercase">Kolektif Kolegial</span>
+                <h1 class="editorial-font text-4xl font-black text-white mt-1">Struktur Kepengurusan</h1>
+                <p class="text-gray-400 text-sm mt-2">DPC GMNI Serang Masa Bakti Aktif</p>
+                <div class="h-1.5 w-16 bg-red-700 mx-auto mt-4 rounded-full"></div>
+            </div>
+
+            <!-- Committee Grid -->
+            <div id="structure-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="col-span-full py-12 text-center text-gray-500">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl mb-4 text-red-600"></i>
+                    <p>Memuat data pengurus...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: SINGLE ARTICLE DETAILED PAGE (STANDALONE NEW TAB READER) -->
+        <section id="view-single-article" class="view-section hidden max-w-3xl mx-auto px-4 py-12 sm:px-6 lg:px-8 bg-gray-950">
+            <!-- Dynamic content loaded via renderSingleArticle() -->
+        </section>
+
+
+        <!-- VIEW: ADMIN LOGIN -->
+        <section id="view-admin-login" class="view-section hidden flex items-center justify-center py-20 px-4">
+            <div class="bg-gray-900 border border-gray-800 w-full max-w-md p-8 rounded-2xl shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-red-600 to-yellow-500"></div>
+                <div class="text-center mb-8">
+                    <i class="fa-solid fa-shield-halved text-red-600 text-4xl mb-3"></i>
+                    <h2 class="editorial-font text-2xl font-bold text-white">Gerbang Masuk Admin</h2>
+                    <p class="text-gray-400 text-xs mt-1">Akses khusus fungsionaris DPC GMNI Serang</p>
+                </div>
+                
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-gray-300 text-xs font-bold uppercase tracking-wider mb-2">Email Admin / ID</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                            <input type="text" id="login-email" required placeholder="admin@gmniserang.or.id" class="w-full bg-gray-950 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-red-700">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-gray-300 text-xs font-bold uppercase tracking-wider">Kunci Sandi</label>
+                            <span class="text-[10px] text-gray-400 font-bold">Hint: <code class="text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded">gmniserang1954</code></span>
+                        </div>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-gray-955 border border-gray-800 rounded-lg pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-red-700">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-red-955/50 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-sign-in"></i> Verifikasi Masuk
+                    </button>
+                </form>
+            </div>
+        </section>
+
+
+        <!-- VIEW: ADMIN DASHBOARD (PROTECTED) -->
+        <section id="view-admin-dashboard" class="view-section hidden max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Sidebar Control Panel -->
+                <aside class="w-full lg:w-64 shrink-0 bg-gray-900 border border-gray-800 rounded-xl p-6 h-fit space-y-6">
+                    <div class="border-b border-gray-800 pb-4 text-center">
+                        <div class="w-12 h-12 bg-red-800 rounded-full flex items-center justify-center mx-auto mb-2 border border-yellow-500 shadow">
+                            <i class="fa-solid fa-user-gear text-white text-lg"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-white leading-tight">Admin GMNI Serang</h3>
+                        <span id="admin-id-display" class="text-[10px] text-gray-500 block truncate font-mono">loading...</span>
+                    </div>
+
+                    <!-- Database Sync Indicator -->
+                    <div class="bg-gray-950 p-3 rounded-lg border border-gray-800 flex items-center gap-3">
+                        <div class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-400 block uppercase font-bold">Status Sinkronisasi</span>
+                            <span id="db-status-badge" class="text-[11px] text-yellow-400 font-bold">Menghubungkan...</span>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar Menu Tabs -->
+                    <div class="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-1.5 pb-2 lg:pb-0">
+                        <button onclick="switchAdminTab('articles')" id="tab-btn-articles" class="admin-tab-btn active shrink-0 text-left px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-3 bg-red-800/10 text-red-400 border border-red-900/30">
+                            <i class="fa-solid fa-newspaper text-sm"></i> Kelola Artikel
+                        </button>
+                        <button onclick="switchAdminTab('structure')" id="tab-btn-structure" class="admin-tab-btn shrink-0 text-left px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-850 hover:text-white border border-transparent">
+                            <i class="fa-solid fa-users text-sm"></i> Kelola Pengurus
+                        </button>
+                        <button onclick="switchAdminTab('profile')" id="tab-btn-profile" class="admin-tab-btn shrink-0 text-left px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-850 hover:text-white border border-transparent">
+                            <i class="fa-solid fa-circle-info text-sm"></i> Sunting Profil
+                        </button>
+                    </div>
+
+                    <div class="border-t border-gray-800 pt-4">
+                        <button onclick="handleLogout()" class="w-full bg-red-900/50 hover:bg-red-900 border border-red-900/50 text-red-400 font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition-all">
+                            <i class="fa-solid fa-right-from-bracket"></i> Keluar Dashboard
+                        </button>
+                    </div>
+                </aside>
+
+                <!-- Dashboard Interactive Workspace -->
+                <div class="flex-grow bg-gray-900 border border-gray-800 rounded-xl p-6 sm:p-8">
+                    
+                    <!-- ADMIN TAB: MANAGE ARTICLES -->
+                    <div id="admin-tab-articles" class="admin-tab-view space-y-8">
+                        <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                            <div>
+                                <h2 class="text-xl font-black text-white">Kelola Artikel & Opini</h2>
+                                <p class="text-gray-400 text-xs mt-1">Tulis gagasan baru atau sunting opini perjuangan terdahulu secara instan.</p>
+                            </div>
+                            <button onclick="openArticleModal()" class="bg-red-700 hover:bg-red-650 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-circle-plus"></i> Tulis Artikel
+                            </button>
+                        </div>
+
+                        <!-- Articles List Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-gray-800 text-gray-400 text-xs font-extrabold uppercase tracking-wider">
+                                        <th class="py-3 px-4">Judul</th>
+                                        <th class="py-3 px-4">Penulis</th>
+                                        <th class="py-3 px-4">Kategori</th>
+                                        <th class="py-3 px-4 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-articles-rows" class="divide-y divide-gray-800/50 text-sm">
+                                    <!-- Dynamic rows loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ADMIN TAB: MANAGE STRUCTURE -->
+                    <div id="admin-tab-structure" class="admin-tab-view hidden space-y-8">
+                        <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                            <div>
+                                <h2 class="text-xl font-black text-white">Kelola Pengurus Cabang</h2>
+                                <p class="text-gray-400 text-xs mt-1">Susun formasi jajaran pengurus aktif GMNI Serang.</p>
+                            </div>
+                            <button onclick="openStructureModal()" class="bg-red-700 hover:bg-red-655 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-circle-plus"></i> Tambah Pengurus
+                            </button>
+                        </div>
+
+                        <!-- Structure List Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-gray-800 text-gray-400 text-xs font-extrabold uppercase tracking-wider">
+                                        <th class="py-3 px-4">Nama</th>
+                                        <th class="py-3 px-4">Jabatan</th>
+                                        <th class="py-3 px-4">Kontak</th>
+                                        <th class="py-3 px-4 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-structure-rows" class="divide-y divide-gray-800/50 text-sm">
+                                    <!-- Dynamic rows loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ADMIN TAB: EDIT PROFILE -->
+                    <div id="admin-tab-profile" class="admin-tab-view hidden space-y-6">
+                        <div class="border-b border-gray-800 pb-4">
+                            <h2 class="text-xl font-black text-white">Sunting Profil Organisasi</h2>
+                            <p class="text-gray-400 text-xs mt-1">Atur profil dasar, sejarah perjuangan, visi, dan misi GMNI Serang.</p>
+                        </div>
+
+                        <form id="admin-profile-form" onsubmit="saveProfileChanges(event)" class="space-y-6">
+                            <div>
+                                <label class="block text-gray-300 text-xs font-extrabold uppercase tracking-wider mb-2">Sejarah & Perjuangan Organisasi</label>
+                                <textarea id="edit-history" required rows="6" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-sm text-gray-350 focus:outline-none focus:border-red-600 leading-relaxed"></textarea>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-gray-300 text-xs font-extrabold uppercase tracking-wider mb-2">Visi Organisasi</label>
+                                    <textarea id="edit-vision" required rows="4" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-sm text-gray-350 focus:outline-none focus:border-red-600 leading-relaxed"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-300 text-xs font-extrabold uppercase tracking-wider mb-2">Misi Organisasi (Satu Misi per Baris)</label>
+                                    <textarea id="edit-mission" required rows="4" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-sm text-gray-350 focus:outline-none focus:border-red-600 leading-relaxed" placeholder="Tuliskan misi organisasi satu-per-satu..."></textarea>
+                                </div>
+                            </div>
+                            <div class="flex justify-end pt-4">
+                                <button type="submit" class="bg-yellow-500 hover:bg-yellow-650 text-black font-extrabold text-xs uppercase tracking-wider px-6 py-3 rounded-lg shadow-md transition-all">
+                                    Simpan Perubahan Profil
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-black border-t border-gray-900 py-12 px-4 sm:px-6 lg:px-8 mt-12">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-center md:text-left">
+                <span class="text-red-500 font-extrabold text-lg tracking-wider block">GMNI SERANG</span>
+                <p class="text-gray-400 text-xs mt-1">Gerakan Mahasiswa Nasional Indonesia - Dewan Pimpinan Cabang Serang.</p>
+            </div>
+            <div class="flex items-center gap-6 text-gray-400">
+                <a href="#" class="hover:text-red-500 transition-colors"><i class="fa-brands fa-instagram text-xl"></i></a>
+                <a href="#" class="hover:text-red-500 transition-colors"><i class="fa-brands fa-facebook text-xl"></i></a>
+                <a href="#" class="hover:text-red-500 transition-colors"><i class="fa-brands fa-youtube text-xl"></i></a>
+                <a href="#" class="hover:text-red-500 transition-colors"><i class="fa-solid fa-envelope text-xl"></i></a>
+            </div>
+            <p class="text-gray-500 text-[10px] text-center md:text-right">
+                &copy; 2026 GMNI Serang. Merdeka! Marhaen Menang!
+            </p>
+        </div>
+    </footer>
+
+    <!-- MODAL: WRITE / EDIT ARTICLE -->
+    <div id="article-modal" class="fixed inset-0 z-[500] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-gray-900 border border-gray-800 w-full max-w-2xl rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                <h3 id="article-modal-title" class="text-lg font-bold text-white">Tulis Artikel Baru</h3>
+                <button onclick="closeArticleModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="article-form" onsubmit="saveArticle(event)" class="space-y-4">
+                <input type="hidden" id="article-edit-id">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Judul Artikel</label>
+                        <input type="text" id="article-title" required class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Penulis / Kader</label>
+                        <input type="text" id="article-author" required class="w-full bg-gray-955 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600" placeholder="Bung / Sarinah...">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Kategori</label>
+                    <select id="article-category" class="w-full bg-gray-955 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600">
+                        <option value="Opini Perjuangan">Opini Perjuangan</option>
+                        <option value="Kabar Cabang">Kabar Cabang</option>
+                        <option value="Ideologi Marhaenisme">Ideologi Marhaenisme</option>
+                        <option value="Kaderisasi">Kaderisasi</option>
+                    </select>
+                </div>
+                <!-- Photo Attachment Control Panel -->
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Foto / Gambar Pendukung</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="sm:col-span-2">
+                            <input type="text" id="article-image" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600" placeholder="Tempel URL gambar atau pilih file...">
+                        </div>
+                        <div>
+                            <label class="w-full flex items-center justify-center gap-2 bg-red-900/40 hover:bg-red-900 border border-red-800 hover:border-yellow-500 rounded-lg p-2.5 text-xs font-bold text-white cursor-pointer transition-all">
+                                <i class="fa-solid fa-upload"></i> Unggah Foto
+                                <input type="file" id="article-image-file" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Live preview thumbnail box -->
+                    <div id="article-image-preview-container" class="mt-3 hidden">
+                        <span class="text-[10px] text-gray-500 block mb-1">Pratinjau Foto:</span>
+                        <div class="relative w-32 h-20 bg-black rounded-lg border border-gray-800 overflow-hidden">
+                            <img id="article-image-preview" class="w-full h-full object-cover" src="">
+                            <button type="button" onclick="removeArticleImage()" class="absolute top-1 right-1 bg-black/80 hover:bg-red-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- External Link redirection Field -->
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Link Artikel Eksternal (Opsional - misal Medium / Instagram / Blog)</label>
+                    <input type="text" id="article-url" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600" placeholder="https://medium.com/@gmniserang/judul-artikel">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Konten / Isi Tulisan</label>
+                    <textarea id="article-content" required rows="8" class="w-full bg-gray-955 border border-gray-800 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-red-700 leading-relaxed font-sans" placeholder="Tulis gagasan progresif Anda di sini..."></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
+                    <button type="button" onclick="closeArticleModal()" class="px-4 py-2.5 rounded-lg text-xs font-bold text-gray-400 hover:bg-gray-850">Batal</button>
+                    <button type="submit" class="bg-red-750 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-lg shadow-md transition-all">Publish Artikel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / EDIT STRUCTURE MEMBER -->
+    <div id="structure-modal" class="fixed inset-0 z-[500] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-gray-900 border border-gray-800 w-full max-w-md rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                <h3 id="structure-modal-title" class="text-lg font-bold text-white">Tambah Pengurus</h3>
+                <button onclick="closeStructureModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="structure-form" onsubmit="saveStructure(event)" class="space-y-4">
+                <input type="hidden" id="structure-edit-id">
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Nama Lengkap (Disertai Gelar Kader)</label>
+                    <input type="text" id="member-name" required class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600" placeholder="Bung Sukarno / Sarinah Fatmawati">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Jabatan Struktur</label>
+                    <input type="text" id="member-role" required class="w-full bg-gray-955 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600" placeholder="Ketua Cabang / Sekretaris I / Bendahara">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Urutan Tampilan (Angka Kecil Di Atas)</label>
+                    <input type="number" id="member-order" required class="w-full bg-gray-955 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600" value="10">
+                </div>
+                <!-- Committee Member Photo Panel -->
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Foto / Gambar Anggota</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="sm:col-span-2">
+                            <input type="text" id="member-image-url" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600" placeholder="Tempel URL foto atau unggah file...">
+                        </div>
+                        <div>
+                            <label class="w-full flex items-center justify-center gap-2 bg-red-900/40 hover:bg-red-900 border border-red-800 hover:border-yellow-500 rounded-lg p-2.5 text-xs font-bold text-white cursor-pointer transition-all">
+                                <i class="fa-solid fa-upload"></i> Unggah Foto
+                                <input type="file" id="member-image-file" accept="image/*" class="hidden" onchange="handleMemberImageUpload(event)">
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Circular live preview box -->
+                    <div id="member-image-preview-container" class="mt-3 hidden">
+                        <span class="text-[10px] text-gray-500 block mb-1">Pratinjau Foto Pengurus:</span>
+                        <div class="relative w-20 h-20 bg-black rounded-full border border-gray-800 overflow-hidden">
+                            <img id="member-image-preview" class="w-full h-full object-cover" src="">
+                            <button type="button" onclick="removeMemberImage()" class="absolute inset-0 bg-black/50 hover:bg-red-700/80 text-white flex items-center justify-center text-xs opacity-0 hover:opacity-100 transition-opacity">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-xs font-bold uppercase mb-2">Kontak / Media Sosial (Instagram/Email)</label>
+                    <input type="text" id="member-contact" class="w-full bg-gray-955 border border-gray-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-red-600" placeholder="@gmniserang">
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-800">
+                    <button type="button" onclick="closeStructureModal()" class="px-4 py-2.5 rounded-lg text-xs font-bold text-gray-400 hover:bg-gray-850">Batal</button>
+                    <button type="submit" class="bg-red-750 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-lg shadow-md transition-all">Simpan Pengurus</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- ASYNCHRONOUS FIREBASE SINKRONISASI UPGRADER (STRICT PATHS & FAIL-SAFE DESIGN) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Ambil konfigurasi asinkronus jika disuntikkan dari runtime lingkungan
+        let firebaseConfig = null;
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                firebaseConfig = JSON.parse(__firebase_config);
+            }
+        } catch(e) {
+            console.warn("Konfigurasi Firebase tidak terdeteksi, menjalankan mode simulasi lokal aman.");
+        }
+
+        if (firebaseConfig) {
+            try {
+                const app = initializeApp(firebaseConfig);
+                window.auth = getAuth(app);
+                window.db = getFirestore(app);
+                window.isUsingFirebase = true;
+                
+                const dbBadge = document.getElementById('db-status-badge');
+                if (dbBadge) {
+                    dbBadge.textContent = "Firebase Menghubungkan...";
+                    dbBadge.className = "text-[11px] text-yellow-500 font-bold";
+                }
+
+                // RULE 3 - Call Auth FIRST and AWAIT it
+                const runAuthAndSync = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(window.auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(window.auth);
+                        }
+                        
+                        // Listen to auth state changed ONLY after authentication is fully initiated
+                        onAuthStateChanged(window.auth, (firebaseUser) => {
+                            window.user = firebaseUser;
+                            if (firebaseUser) {
+                                const idDisplay = document.getElementById('admin-id-display');
+                                if (idDisplay) idDisplay.textContent = `UID: ${firebaseUser.uid}`;
+                                
+                                const dbBadge = document.getElementById('db-status-badge');
+                                if (dbBadge) {
+                                    dbBadge.textContent = "Firebase Terkoneksi";
+                                    dbBadge.className = "text-[11px] text-green-400 font-bold";
+                                }
+                                
+                                // Activate Sync safely with authenticated credentials
+                                activateCloudDatabaseSync();
+                            } else {
+                                fallbackToOfflineBanner();
+                            }
+                        });
+                    } catch (authError) {
+                        console.error("Autentikasi Firebase gagal:", authError);
+                        fallbackToOfflineBanner();
+                    }
+                };
+                
+                runAuthAndSync();
+
+            } catch (err) {
+                console.warn("Koneksi Firebase gagal diinisialisasi. Berjalan dalam mode mandiri.", err);
+                fallbackToOfflineBanner();
+            }
+        } else {
+            fallbackToOfflineBanner();
+        }
+
+        function fallbackToOfflineBanner() {
+            window.isUsingFirebase = false;
+            const dbBadge = document.getElementById('db-status-badge');
+            if (dbBadge) {
+                dbBadge.textContent = "Mode Sandbox Aktif";
+                dbBadge.className = "text-[11px] text-yellow-400 font-bold";
+            }
+            const idDisplay = document.getElementById('admin-id-display');
+            if (idDisplay) idDisplay.textContent = "Sesi Sandbox Aktif";
+        }
+
+        // Jalankan sinkronisasi real-time cloud menggantikan penyimpanan lokal
+        let unsubscribeProfile = null;
+        let unsubscribeArticles = null;
+        let unsubscribeStructure = null;
+
+        function activateCloudDatabaseSync() {
+            // RULE 3: Guard Firestore operations. Do not query if window.db or window.user is null!
+            if (!window.db || !window.user) return;
+
+            // Unsubscribe existing listeners if any to prevent duplicate listener overhead
+            if (unsubscribeProfile) unsubscribeProfile();
+            if (unsubscribeArticles) unsubscribeArticles();
+            if (unsubscribeStructure) unsubscribeStructure();
+
+            // Strict paths (Rule 1) & Even segments using the dynamically resolved window.appId
+            const profileRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'profile', 'main');
+            const articlesCol = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'articles');
+            const structureCol = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'structure');
+
+            // 1. Sinkronisasi Profil GMNI
+            unsubscribeProfile = onSnapshot(profileRef, (snap) => {
+                if (snap.exists()) {
+                    window.currentProfile = snap.data();
+                    window.renderProfile();
+                    window.renderAdminProfileForm();
+                } else {
+                    setDoc(profileRef, window.currentProfile);
+                }
+            }, (err) => {
+                console.error("Gagal sinkronisasi profil: ", err);
+            });
+
+            // 2. Sinkronisasi Artikel Opini (Rule 2: Urutkan di klien)
+            unsubscribeArticles = onSnapshot(articlesCol, (snap) => {
+                const list = [];
+                snap.forEach((doc) => {
+                    list.push({ id: doc.id, ...doc.data() });
+                });
+                window.currentArticles = list.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                window.renderArticles();
+                window.renderAdminArticles();
+            }, (err) => {
+                console.error("Gagal sinkronisasi artikel: ", err);
+            });
+
+            // 3. Sinkronisasi Pengurus Cabang
+            unsubscribeStructure = onSnapshot(structureCol, (snap) => {
+                const list = [];
+                snap.forEach((doc) => {
+                    list.push({ id: doc.id, ...doc.data() });
+                });
+                window.currentStructure = list.sort((a,b) => (a.order || 99) - (b.order || 99));
+                window.renderStructure();
+                window.renderAdminStructure();
+            }, (err) => {
+                console.error("Gagal sinkronisasi struktur: ", err);
+            });
+        }
+
+        // override window action hooks to support firebase directly
+        window.saveArticle = async function(event) {
+            event.preventDefault();
+            const id = document.getElementById('article-edit-id').value;
+            const title = document.getElementById('article-title').value;
+            const author = document.getElementById('article-author').value;
+            const category = document.getElementById('article-category').value;
+            const imageUrl = document.getElementById('article-image').value;
+            const articleUrl = document.getElementById('article-url').value;
+            const content = document.getElementById('article-content').value;
+
+            const articleData = {
+                title,
+                author,
+                category,
+                imageUrl,
+                articleUrl,
+                content,
+                createdAt: new Date().toISOString()
+            };
+
+            if (window.isUsingFirebase && window.db && window.user) {
+                try {
+                    if (id) {
+                        const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'articles', id);
+                        await updateDoc(docRef, articleData);
+                    } else {
+                        const colRef = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'articles');
+                        await addDoc(colRef, articleData);
+                    }
+                    window.showToast("Artikel berhasil di-publish di Cloud!", "success");
+                } catch(e) {
+                    window.showToast("Gagal menyimpan ke Firebase", "error");
+                }
+            } else {
+                if (id) {
+                    window.currentArticles = window.currentArticles.map(art => art.id === id ? { ...art, ...articleData } : art);
+                } else {
+                    const newArt = { id: 'art_' + Date.now(), ...articleData };
+                    window.currentArticles.unshift(newArt);
+                }
+                setLocalItem('articles', window.currentArticles);
+                window.loadLocalUiData();
+                window.showToast("Artikel tersimpan di memori lokal!", "success");
+            }
+            window.closeArticleModal();
+        };
+
+        window.deleteArticle = async function(id) {
+            if (window.isUsingFirebase && window.db && window.user) {
+                try {
+                    const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'articles', id);
+                    await deleteDoc(docRef);
+                    window.showToast("Artikel berhasil dihapus", "success");
+                } catch(e) {
+                    window.showToast("Gagal menghapus dari Firebase", "error");
+                }
+            } else {
+                window.currentArticles = window.currentArticles.filter(art => art.id !== id);
+                setLocalItem('articles', window.currentArticles);
+                window.loadLocalUiData();
+                window.showToast("Artikel berhasil dihapus dari memori lokal", "success");
+            }
+        };
+
+        window.saveStructure = async function(event) {
+            event.preventDefault();
+            const id = document.getElementById('structure-edit-id').value;
+            const name = document.getElementById('member-name').value;
+            const role = document.getElementById('member-role').value;
+            const order = parseInt(document.getElementById('member-order').value) || 10;
+            const imageUrl = document.getElementById('member-image-url').value;
+            const contact = document.getElementById('member-contact').value;
+
+            const memberData = { name, role, order, imageUrl, contact };
+
+            if (window.isUsingFirebase && window.db && window.user) {
+                try {
+                    if (id) {
+                        const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'structure', id);
+                        await updateDoc(docRef, memberData);
+                    } else {
+                        const colRef = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'structure');
+                        await addDoc(colRef, memberData);
+                    }
+                    window.showToast("Struktur pengurus berhasil disimpan!", "success");
+                } catch(e) {
+                    window.showToast("Gagal menyimpan ke Firebase", "error");
+                }
+            } else {
+                if (id) {
+                    window.currentStructure = window.currentStructure.map(m => m.id === id ? { ...m, ...memberData } : m);
+                } else {
+                    const newMem = { id: 'mem_' + Date.now(), ...memberData };
+                    window.currentStructure.push(newMem);
+                }
+                window.currentStructure.sort((a,b) => a.order - b.order);
+                setLocalItem('structure', window.currentStructure);
+                window.loadLocalUiData();
+                window.showToast("Pengurus berhasil disimpan secara lokal!", "success");
+            }
+            window.closeStructureModal();
+        };
+
+        window.deleteStructure = async function(id) {
+            if (window.isUsingFirebase && window.db && window.user) {
+                try {
+                    const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'structure', id);
+                    await deleteDoc(docRef);
+                    window.showToast("Pengurus berhasil dihapus", "success");
+                } catch(e) {
+                    window.showToast("Gagal menghapus", "error");
+                }
+            } else {
+                window.currentStructure = window.currentStructure.filter(m => m.id !== id);
+                setLocalItem('structure', window.currentStructure);
+                window.loadLocalUiData();
+                window.showToast("Pengurus berhasil dihapus", "success");
+            }
+        };
+
+        window.saveProfileChanges = async function(event) {
+            event.preventDefault();
+            const history = document.getElementById('edit-history').value;
+            const vision = document.getElementById('edit-vision').value;
+            const mission = document.getElementById('edit-mission').value.split('\n').filter(m => m.trim() !== '');
+
+            const updatedProfile = { history, vision, mission };
+
+            if (window.isUsingFirebase && window.db && window.user) {
+                try {
+                    const docRef = doc(window.db, 'artifacts', window.appId, 'public', 'data', 'profile', 'main');
+                    await setDoc(docRef, updatedProfile);
+                    window.showToast("Profil GMNI Serang diperbarui di Cloud!", "success");
+                } catch(e) {
+                    window.showToast("Gagal memperbarui profil di Firebase", "error");
+                }
+            } else {
+                window.currentProfile = updatedProfile;
+                setLocalItem('profile', window.currentProfile);
+                window.loadLocalUiData();
+                window.showToast("Profil GMNI Serang diperbarui secara lokal!", "success");
+            }
+        };
+    </script>
+
+    <!-- WORKSPACE INTERACTION SCRIPTS -->
+    <script>
+        // Smart Image Upload and Canvas Compressor
+        window.handleImageUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const max_size = 800; // safe scale in px
+                    
+                    if (width > height) {
+                        if (width > max_size) {
+                            height *= max_size / width;
+                            width = max_size;
+                        }
+                    } else {
+                        if (height > max_size) {
+                            width *= max_size / height;
+                            height = max_size;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Compress to JPG 70% quality to fit within safe limits
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    document.getElementById('article-image').value = compressedBase64;
+                    document.getElementById('article-image-preview').src = compressedBase64;
+                    document.getElementById('article-image-preview-container').classList.remove('hidden');
+                    
+                    window.showToast("Gambar berhasil dimuat & dikompresi!", "success");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.removeArticleImage = function() {
+            document.getElementById('article-image').value = '';
+            document.getElementById('article-image-file').value = '';
+            document.getElementById('article-image-preview-container').classList.add('hidden');
+        };
+
+        // Smart image upload for committee members (compresses to square 300x300)
+        window.handleMemberImageUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const size = 300; // Square crop size
+                    canvas.width = size;
+                    canvas.height = size;
+                    
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Crop center of image
+                    let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+                    if (img.width > img.height) {
+                        sWidth = img.height;
+                        sx = (img.width - img.height) / 2;
+                    } else {
+                        sHeight = img.width;
+                        sy = (img.height - img.width) / 2;
+                    }
+                    
+                    ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, size, size);
+                    
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    document.getElementById('member-image-url').value = compressedBase64;
+                    document.getElementById('member-image-preview').src = compressedBase64;
+                    document.getElementById('member-image-preview-container').classList.remove('hidden');
+                    
+                    window.showToast("Foto pengurus berhasil disesuaikan & dikompresi!", "success");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.removeMemberImage = function() {
+            document.getElementById('member-image-url').value = '';
+            document.getElementById('member-image-file').value = '';
+            document.getElementById('member-image-preview-container').classList.add('hidden');
+        };
+
+        // Form Action Helpers
+        window.openArticleModal = function() {
+            const form = document.getElementById('article-form');
+            if (form) form.reset();
+            document.getElementById('article-edit-id').value = '';
+            document.getElementById('article-image-preview-container').classList.add('hidden');
+            document.getElementById('article-modal-title').textContent = "Tulis Artikel Perjuangan";
+            document.getElementById('article-modal').classList.remove('hidden');
+        };
+
+        window.closeArticleModal = function() {
+            document.getElementById('article-modal').classList.add('hidden');
+        };
+
+        window.editArticle = function(id) {
+            const art = window.currentArticles.find(a => a.id === id);
+            if (!art) return;
+
+            document.getElementById('article-edit-id').value = art.id;
+            document.getElementById('article-title').value = art.title || '';
+            document.getElementById('article-author').value = art.author || '';
+            document.getElementById('article-category').value = art.category || 'Opini Perjuangan';
+            document.getElementById('article-url').value = art.articleUrl || '';
+            
+            const imgVal = art.imageUrl || '';
+            document.getElementById('article-image').value = imgVal;
+            if (imgVal.trim() !== '') {
+                document.getElementById('article-image-preview').src = imgVal;
+                document.getElementById('article-image-preview-container').classList.remove('hidden');
+            } else {
+                document.getElementById('article-image-preview-container').classList.add('hidden');
+            }
+
+            document.getElementById('article-content').value = art.content || '';
+            document.getElementById('article-modal-title').textContent = "Sunting Artikel";
+            document.getElementById('article-modal').classList.remove('hidden');
+        };
+
+        window.openStructureModal = function() {
+            const form = document.getElementById('structure-form');
+            if (form) form.reset();
+            document.getElementById('structure-edit-id').value = '';
+            document.getElementById('member-image-preview-container').classList.add('hidden');
+            document.getElementById('structure-modal-title').textContent = "Tambah Pengurus";
+            document.getElementById('structure-modal').classList.remove('hidden');
+        };
+
+        window.closeStructureModal = function() {
+            document.getElementById('structure-modal').classList.add('hidden');
+        };
+
+        window.editStructure = function(id) {
+            const member = window.currentStructure.find(m => m.id === id);
+            if (!member) return;
+
+            document.getElementById('structure-edit-id').value = member.id;
+            document.getElementById('member-name').value = member.name || '';
+            document.getElementById('member-role').value = member.role || '';
+            document.getElementById('member-order').value = member.order || 10;
+            
+            const imgVal = member.imageUrl || '';
+            document.getElementById('member-image-url').value = imgVal;
+            if (imgVal.trim() !== '') {
+                document.getElementById('member-image-preview').src = imgVal;
+                document.getElementById('member-image-preview-container').classList.remove('hidden');
+            } else {
+                document.getElementById('member-image-preview-container').classList.add('hidden');
+            }
+            
+            document.getElementById('member-contact').value = member.contact || '';
+
+            document.getElementById('structure-modal-title').textContent = "Sunting Jabatan Pengurus";
+            document.getElementById('structure-modal').classList.remove('hidden');
+        };
+
+        window.handleLogin = function(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            if (password === 'gmniserang1954' || (email === 'admin@gmniserang.or.id' && password === 'gmniserang1954')) {
+                showToast("Autentikasi Admin Berhasil!", "success");
+                navigate('admin-dashboard');
+                const navBtn = document.getElementById('admin-nav-btn');
+                navBtn.innerHTML = `<i class="fa-solid fa-gauge"></i> Dashboard`;
+                navBtn.onclick = () => navigate('admin-dashboard');
+            } else {
+                showToast("Sandi/Email verifikasi salah!", "error");
+            }
+        };
+
+        window.handleLogout = function() {
+            showToast("Sesi Admin telah disudahi", "info");
+            navigate('home');
+            const navBtn = document.getElementById('admin-nav-btn');
+            navBtn.innerHTML = `<i class="fa-solid fa-lock-open"></i> Portal Admin`;
+            navBtn.onclick = () => navigate('admin-login');
+        };
+
+        window.switchAdminTab = function(tabName) {
+            document.querySelectorAll('.admin-tab-view').forEach(view => view.classList.add('hidden'));
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+                btn.className = "admin-tab-btn shrink-0 text-left px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-850 hover:text-white border border-transparent";
+            });
+
+            document.getElementById(`admin-tab-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            if (activeBtn) activeBtn.className = "admin-tab-btn active shrink-0 text-left px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-3 bg-red-800/10 text-red-400 border border-red-900/30";
+        };
+
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-lg border text-sm font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+            
+            let bgBorder, icon;
+            if (type === 'success') {
+                bgBorder = 'bg-gray-900 text-green-400 border-green-900/30';
+                icon = '<i class="fa-solid fa-circle-check text-green-500 text-base"></i>';
+            } else if (type === 'error') {
+                bgBorder = 'bg-gray-900 text-red-400 border-red-900/30';
+                icon = '<i class="fa-solid fa-circle-exclamation text-red-500 text-base"></i>';
+            } else {
+                bgBorder = 'bg-gray-900 text-yellow-400 border-yellow-900/30';
+                icon = '<i class="fa-solid fa-circle-info text-yellow-500 text-base"></i>';
+            }
+
+            toast.innerHTML = `${icon} <span class="flex-grow">${message}</span>`;
+            toast.className += ` ${bgBorder}`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        };
+
+        window.viewArticleDetails = function(id) {
+            const art = window.currentArticles.find(a => a.id === id);
+            if (!art) return;
+
+            // Jika admin memasukkan link eksternal khusus, langsung buka link tersebut
+            if (art.articleUrl && art.articleUrl.trim() !== '') {
+                try {
+                    window.open(art.articleUrl, '_blank');
+                } catch (e) {
+                    // Fallback jika window.open diblokir oleh sandbox iframe Canvas
+                    console.warn("Popup blocked, navigating inline:", e);
+                    window.navigate('single-article');
+                    window.renderSingleArticle(id);
+                }
+            } else {
+                // Di dalam Canvas, window.open biasanya diblokir oleh browser.
+                // Jika kita mendeteksi kita berada di dalam Iframe (preview mode), kita gunakan navigasi internal (SPA) agar responsif dan bisa dinikmati live!
+                if (window.self !== window.top) {
+                    window.navigate('single-article');
+                    window.renderSingleArticle(id);
+                } else {
+                    // Di luar iframe (produksi/tab normal), buka di tab baru
+                    try {
+                        window.open('?article=' + id, '_blank');
+                    } catch (e) {
+                        window.navigate('single-article');
+                        window.renderSingleArticle(id);
+                    }
+                }
+            }
+        };
+    </script>
+</body>
+</html>
